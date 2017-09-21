@@ -18,13 +18,13 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[centering]: ./examples/center.png "centering.png"
+[recover1]: ./examples/recover1.png "recover1.png"
+[recover2]: ./examples/recover2.png "recover2.png"
+[recover3]: ./examples/recover3.png "recover3.png"
+[fail_lenet]: ./examples/placeholder_small.png "fail-lenet.png"
+[nvidia-track2-crash1]: ./examples/nvidia-track2-crash1.png "nvidia-track2-crash1.png"
+[nvidia-track2-crash2]: ./examples/nvidia-track2-crash2.png "nvidia-track2-crash2.png"
 
 ## Rubric Points
 ###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -43,7 +43,7 @@ My project includes the following files:
 ####2. Submission includes functional code
 Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
 ```sh
-python drive.py model.h5
+python drive.py model-nvidia3.h5
 ```
 
 ####3. Submission code is usable and readable
@@ -54,23 +54,21 @@ The model.py file contains the code for training and saving the convolution neur
 
 ####1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
-
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+There are a number of different models as introduced in the class as well as the model from commaAI. The models can be chosen using the --models command line argument.
 
 ####2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+The commaAI model contains dropout layers, the others don't.
 
 The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
 
 ####3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model used an adam optimizer, so the learning rate was not tuned manually.
 
 ####4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
+Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road. The original udacity dataset is augmented with driving in the center one lap, driving in the center one backwards lap, recovering in the regular direction for one lap, recovering in the regular direction for one backwards lap.
 
 For details about how I created the training data, see the next section. 
 
@@ -78,52 +76,53 @@ For details about how I created the training data, see the next section.
 
 ####1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
+The overall strategy for deriving a model architecture was to watch the classroom videos.
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+My first step was to use a convolution neural network model similar to LeNet. I anticipated this model might not be appropriate. The model did, however, drive a fair bit over the bridge. Ultimately it drove into the wild. I think the training data contains a small track where I drive into the wild in order to take a shortcut. However, the model seems to not follow the shortcut precisely enough so it fails to recover from the situation.
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
+The commai model (without cropping) wasn't even able to drive over the first bridge.
 
-To combat the overfitting, I modified the model so that ...
-
-Then I ... 
-
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
+The nvidia model performs quite good and manages to do the full first track. I tried it with the second track and it got around a little bit.
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
 ####2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+The final model architecture is a convolutional neral net defined in modelNvidia. It contains a lambda to normalize and mean center the image data. The image is cropped to focus on the relevant bit, which is the street. Three 5x5 convolutions and two 3x3 convolutions with relu activations are used. The number of hidden nodes is much larger than in LeNet with 24,36,48,64,64 nodes. Finally multiple fully connected layers (FC-100, FC-50, FC-10, FC-1) reduce the output to a single one.
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
 
 ####3. Creation of the Training Set & Training Process
 
 To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
 
-![alt text][image2]
+![alt text][centering]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to recover. These images show what a recovery looks like at random places:
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+![alt text][recover1]
+![alt text][recover2]
+![alt text][recover3]
 
-Then I repeated this process on track two in order to get more data points.
+I repeated this process a few times on the first track driving a single lap both in the normal direction as well as from the other direction.
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+To augment the data sat, I flipped the images and angles thinking that this would double the amount of usable training data while also balancing left turns vs. right turns. Furthermore all three cameras are used with a compensation value of 0.2. 
 
-![alt text][image6]
-![alt text][image7]
+After the collection process, I had 16812*3*2 data samples.
 
-Etc ....
+The lenet model would drive over the bridge and turn into the bush. I think when I recorded the data I did on purpose drive there to make a shortcut. I am not sure anymore. This would explain the behaviour. Unfortunately the car doesn't find its way out again. Presumably because it barely can see the road anymore and ends up in a steep angle that it hasn't seen before.
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
+The commai model surprisingly fails to take the curve before the bridge already.
 
+The nvidia model drives the whole lap! Well done.
 
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
+When I tried the nvidia model on the second track it manages to drive up the first hill a little bit before it crashes.
 
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+![alt text][nvidia-track2-crash1]
+
+I then recorded center driving the second lap fully for once.
+This would give me 18302*3*2 data samples.
+The model would now drive much further but get stuck driving up a hill.
+
+![alt text][nvidia-track2-crash2]
+
+Specifically training this scenario gave me a new model which then would drive even worse at the very beginning. I gave up on track 2.
